@@ -34,7 +34,7 @@ class GrandMasterCoinConfig():
         creds = {key: value for (key, value) in match}
 
         # standard GrandMasterCoin defaults...
-        default_port = 14936 if (network == 'mainnet') else 24936
+        default_port = 3230 if (network == 'mainnet') else 13230
 
         # use default port for network if not specified in grandmastercoin.conf
         if not ('port' in creds):
