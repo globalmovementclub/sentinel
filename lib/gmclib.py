@@ -12,14 +12,14 @@ from misc import printdbg, epoch2str
 import time
 
 
-def is_valid_grandmastercoin_address(address, network='mainnet'):
+def is_valid_gmc_address(address, network='mainnet'):
     # Only public key addresses are allowed
     # A valid address is a RIPEMD-160 hash which contains 20 bytes
     # Prior to base58 encoding 1 version byte is prepended and
     # 4 checksum bytes are appended so the total number of
     # base58 encoded bytes should be 25.  This means the number of characters
     # in the encoding should be about 34 ( 25 * log2( 256 ) / log2( 58 ) ).
-    grandmastercoin_version = 140 if network == 'testnet' else 38
+    gmc_version = 140 if network == 'testnet' else 38
 
     # Check length (This is important because the base58 library has problems
     # with long addresses (which are invalid anyway).
@@ -32,10 +32,10 @@ def is_valid_grandmastercoin_address(address, network='mainnet'):
         decoded = base58.b58decode_chk(address)
         address_version = ord(decoded[0:1])
     except:
-        # rescue from exception, not a valid GrandMasterCoin address
+        # rescue from exception, not a valid GMC address
         return False
 
-    if (address_version != grandmastercoin_version):
+    if (address_version != gmc_version):
         return False
 
     return True
@@ -179,45 +179,45 @@ def create_superblock(proposals, event_block_height, budget_max, sb_epoch_time):
     return sb
 
 
-# shims 'til we can fix the grandmastercoind side
-def SHIM_serialise_for_grandmastercoind(sentinel_hex):
+# shims 'til we can fix the gmcd side
+def SHIM_serialise_for_gmcd(sentinel_hex):
     from models import TALCASHD_GOVOBJ_TYPES
     # unpack
     obj = deserialise(sentinel_hex)
 
-    # shim for grandmastercoind
+    # shim for gmcd
     govtype = obj[0]
 
     # add 'type' attribute
     obj[1]['type'] = TALCASHD_GOVOBJ_TYPES[govtype]
 
-    # superblock => "trigger" in grandmastercoind
+    # superblock => "trigger" in gmcd
     if govtype == 'superblock':
         obj[0] = 'trigger'
 
-    # grandmastercoind expects an array (even though there is only a 1:1 relationship between govobj->class)
+    # gmcd expects an array (even though there is only a 1:1 relationship between govobj->class)
     obj = [obj]
 
     # re-pack
-    grandmastercoind_hex = serialise(obj)
-    return grandmastercoind_hex
+    gmcd_hex = serialise(obj)
+    return gmcd_hex
 
 
-# shims 'til we can fix the grandmastercoind side
-def SHIM_deserialise_from_grandmastercoind(grandmastercoind_hex):
+# shims 'til we can fix the gmcd side
+def SHIM_deserialise_from_gmcd(gmcd_hex):
     from models import TALCASHD_GOVOBJ_TYPES
 
     # unpack
-    obj = deserialise(grandmastercoind_hex)
+    obj = deserialise(gmcd_hex)
 
-    # shim from grandmastercoind
+    # shim from gmcd
     # only one element in the array...
     obj = obj[0]
 
     # extract the govobj type
     govtype = obj[0]
 
-    # superblock => "trigger" in grandmastercoind
+    # superblock => "trigger" in gmcd
     if govtype == 'trigger':
         obj[0] = govtype = 'superblock'
 
@@ -251,7 +251,7 @@ def did_we_vote(output):
     err_msg = ''
 
     try:
-        detail = output.get('detail').get('grandmastercoin.conf')
+        detail = output.get('detail').get('gmc.conf')
         result = detail.get('result')
         if 'errorMessage' in detail:
             err_msg = detail.get('errorMessage')

@@ -57,23 +57,23 @@ def is_database_correctly_configured():
     return configured
 
 
-def has_grandmastercoin_conf():
+def has_gmc_conf():
     import config
     import io
 
-    valid_grandmastercoin_conf = False
+    valid_gmc_conf = False
 
-    # ensure grandmastercoin_conf exists & readable
+    # ensure gmc_conf exists & readable
     #
-    # if not, print a message stating that GrandMasterCoin Core must be installed and
-    # configured, including JSONRPC access in grandmastercoin.conf
+    # if not, print a message stating that GMC Core must be installed and
+    # configured, including JSONRPC access in gmc.conf
     try:
-        f = io.open(config.grandmastercoin_conf)
-        valid_grandmastercoin_conf = True
+        f = io.open(config.gmc_conf)
+        valid_gmc_conf = True
     except IOError as e:
         print(e)
 
-    return valid_grandmastercoin_conf
+    return valid_gmc_conf
 
 
 # === begin main
@@ -95,8 +95,8 @@ def main():
         print("Please ensure correct database configuration.")
         sys.exit(1)
 
-    if not has_grandmastercoin_conf():
-        print("GrandMasterCoinCore must be installed and configured, including JSONRPC access in grandmastercoin.conf")
+    if not has_gmc_conf():
+        print("GMC must be installed and configured, including JSONRPC access in gmc.conf")
         sys.exit(1)
 
 

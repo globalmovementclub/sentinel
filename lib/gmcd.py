@@ -1,5 +1,5 @@
 """
-grandmastercoind JSONRPC interface
+gmcd JSONRPC interface
 """
 import sys
 import os
@@ -13,7 +13,7 @@ from decimal import Decimal
 import time
 
 
-class GrandMasterCoinDaemon():
+class GMCDaemon():
     def __init__(self, **kwargs):
         host = kwargs.get('host', '127.0.0.1')
         user = kwargs.get('user')
@@ -22,7 +22,7 @@ class GrandMasterCoinDaemon():
 
         self.creds = (user, password, host, port)
 
-        # memoize calls to some grandmastercoind methods
+        # memoize calls to some gmcd methods
         self.governance_info = None
         self.gobject_votes = {}
 
@@ -31,10 +31,10 @@ class GrandMasterCoinDaemon():
         return AuthServiceProxy("http://{0}:{1}@{2}:{3}".format(*self.creds))
 
     @classmethod
-    def from_grandmastercoin_conf(self, grandmastercoin_dot_conf):
-        from grandmastercoin_config import GrandMasterCoinConfig
-        config_text = GrandMasterCoinConfig.slurp_config_file(grandmastercoin_dot_conf)
-        creds = GrandMasterCoinConfig.get_rpc_creds(config_text, config.network)
+    def from_gmc_conf(self, gmc_dot_conf):
+        from gmc_config import GMCConfig
+        config_text = GMCConfig.slurp_config_file(gmc_dot_conf)
+        creds = GMCConfig.get_rpc_creds(config_text, config.network)
 
         return self(**creds)
 
@@ -57,7 +57,7 @@ class GrandMasterCoinDaemon():
         return golist
 
     def get_current_masternode_vin(self):
-        from grandmastercoinlib import parse_masternode_status_vin
+        from gmclib import parse_masternode_status_vin
 
         my_vin = None
 
@@ -142,7 +142,7 @@ class GrandMasterCoinDaemon():
     # "my" votes refers to the current running masternode
     # memoized on a per-run, per-object_hash basis
     def get_my_gobject_votes(self, object_hash):
-        import grandmastercoinlib
+        import gmclib
         if not self.gobject_votes.get(object_hash):
             my_vin = self.get_current_masternode_vin()
             # if we can't get MN vin from output of `masternode status`,
@@ -154,7 +154,7 @@ class GrandMasterCoinDaemon():
 
             cmd = ['gobject', 'getcurrentvotes', object_hash, txid, vout_index]
             raw_votes = self.rpc_command(*cmd)
-            self.gobject_votes[object_hash] = grandmastercoinlib.parse_raw_votes(raw_votes)
+            self.gobject_votes[object_hash] = gmclib.parse_raw_votes(raw_votes)
 
         return self.gobject_votes[object_hash]
 
@@ -178,11 +178,11 @@ class GrandMasterCoinDaemon():
         return (current_height >= maturity_phase_start_block)
 
     def we_are_the_winner(self):
-        import grandmastercoinlib
+        import gmclib
         # find the elected MN vin for superblock creation...
         current_block_hash = self.current_block_hash()
         mn_list = self.get_masternodes()
-        winner = grandmastercoinlib.elect_mn(block_hash=current_block_hash, mnlist=mn_list)
+        winner = gmclib.elect_mn(block_hash=current_block_hash, mnlist=mn_list)
         my_vin = self.get_current_masternode_vin()
 
         # print "current_block_hash: [%s]" % current_block_hash
@@ -201,7 +201,7 @@ class GrandMasterCoinDaemon():
         return (self.MASTERNODE_WATCHDOG_MAX_SECONDS // 2)
 
     def estimate_block_time(self, height):
-        import grandmastercoinlib
+        import gmclib
         """
         Called by block_height_to_epoch if block height is in the future.
         Call `block_height_to_epoch` instead of this method.
@@ -214,7 +214,7 @@ class GrandMasterCoinDaemon():
         if (diff < 0):
             raise Exception("Oh Noes.")
 
-        future_seconds = grandmastercoinlib.blocks_to_seconds(diff)
+        future_seconds = gmclib.blocks_to_seconds(diff)
         estimated_epoch = int(time.time() + future_seconds)
 
         return estimated_epoch
@@ -242,7 +242,7 @@ class GrandMasterCoinDaemon():
     @property
     def has_sentinel_ping(self):
         getinfo = self.rpc_command('getinfo')
-        return (getinfo['protocolversion'] >= config.min_grandmastercoind_proto_version_with_sentinel_ping)
+        return (getinfo['protocolversion'] >= config.min_gmcd_proto_version_with_sentinel_ping)
 
     def ping(self):
         self.rpc_command('sentinelping', config.sentinel_version)

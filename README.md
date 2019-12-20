@@ -1,10 +1,10 @@
-# GrandMasterCoin Sentinel
+# GMC Sentinel
 
-An all-powerful toolset for GrandMasterCoin.
+An all-powerful toolset for GMC.
 
-Sentinel is an autonomous agent for persisting, processing and automating GrandMasterCoin V7.5 governance objects and tasks, and for expanded functions in the upcoming releases.
+Sentinel is an autonomous agent for persisting, processing and automating GMC V7.5 governance objects and tasks, and for expanded functions in the upcoming releases.
 
-Sentinel is implemented as a Python application that binds to a local version 7.5 grandmastercoind instance on each GrandMasterCoin V7.5 Masternode.
+Sentinel is implemented as a Python application that binds to a local version 7.5 gmcd instance on each GMC V7.5 Masternode.
 
 This guide covers installing Sentinel onto an existing Masternode in Ubuntu 14.04 / 16.04.
 
@@ -21,15 +21,15 @@ Update system packages and ensure virtualenv is installed:
     $ sudo apt-get update
     $ sudo apt-get -y install python-virtualenv
 
-Make sure the local GrandMasterCoin daemon running is at least version 7.5 (70500)
+Make sure the local GMC daemon running is at least version 7.5 (70500)
 
-    $ grandmastercoin-cli getinfo | grep version
+    $ gmc-cli getinfo | grep version
 
 ### 2. Install Sentinel
 
 Clone the Sentinel repo and install Python dependencies.
 
-    $ git clone https://github.com/grandmastercoin/sentinel.git && cd sentinel
+    $ git clone https://github.com/globalmovementclub/sentinel.git && cd sentinel
     $ virtualenv ./venv
     $ ./venv/bin/pip install -r requirements.txt
 
@@ -49,13 +49,13 @@ Test the config by runnings all tests from the sentinel folder you cloned into
 
     $ ./venv/bin/py.test ./test
 
-With all tests passing and crontab setup, Sentinel will stay in sync with grandmastercoind and the installation is complete
+With all tests passing and crontab setup, Sentinel will stay in sync with gmcd and the installation is complete
 
 ## Configuration
 
-An alternative (non-default) path to the `grandmastercoin.conf` file can be specified in `sentinel.conf`:
+An alternative (non-default) path to the `gmc.conf` file can be specified in `sentinel.conf`:
 
-    grandmastercoin_conf=/path/to/grandmastercoin.conf
+    gmc_conf=/path/to/gmc.conf
 
 ## Troubleshooting
 
@@ -65,4 +65,4 @@ To view debug output, set the `SENTINEL_DEBUG` environment variable to anything 
 
 ### License
 
-Released under the MIT license, under the same terms as GrandMasterCoinCore itself. See [LICENSE](LICENSE) for more info.
+Released under the MIT license, under the same terms as GMCCore itself. See [LICENSE](LICENSE) for more info.

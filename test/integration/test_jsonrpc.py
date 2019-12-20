@@ -8,12 +8,12 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'lib'))
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 import config
 
-from grandmastercoind import GrandMasterCoinDaemon
-from grandmastercoin_config import GrandMasterCoinConfig
+from gmcd import GMCDaemon
+from gmc_config import GMCConfig
 
 
-def test_grandmastercoind():
-    config_text = GrandMasterCoinConfig.slurp_config_file(config.grandmastercoin_conf)
+def test_gmcd():
+    config_text = GMCConfig.slurp_config_file(config.gmc_conf)
     network = 'mainnet'
     is_testnet = False
     genesis_hash = u'00000c1e7a1563dde823100b6e34d078ac5f96404b1f0b83953de8c923b119c2'
@@ -23,15 +23,15 @@ def test_grandmastercoind():
             is_testnet = True
             genesis_hash = u'00000c1e7a1563dde823100b6e34d078ac5f96404b1f0b83953de8c923b119c2'
 
-    creds = GrandMasterCoinConfig.get_rpc_creds(config_text, network)
-    grandmastercoind = GrandMasterCoinDaemon(**creds)
-    assert grandmastercoind.rpc_command is not None
+    creds = GMCConfig.get_rpc_creds(config_text, network)
+    gmcd = GMCDaemon(**creds)
+    assert gmcd.rpc_command is not None
 
-    assert hasattr(grandmastercoind, 'rpc_connection')
+    assert hasattr(gmcd, 'rpc_connection')
 
-    # GrandMasterCoin testnet block 0 hash == 00000c1e7a1563dde823100b6e34d078ac5f96404b1f0b83953de8c923b119c2
+    # GMC testnet block 0 hash == 00000c1e7a1563dde823100b6e34d078ac5f96404b1f0b83953de8c923b119c2
     # test commands without arguments
-    info = grandmastercoind.rpc_command('getinfo')
+    info = gmcd.rpc_command('getinfo')
     info_keys = [
         'blocks',
         'connections',
@@ -48,4 +48,4 @@ def test_grandmastercoind():
     assert info['testnet'] is is_testnet
 
     # test commands with args
-    assert grandmastercoind.rpc_command('getblockhash', 0) == genesis_hash
+    assert gmcd.rpc_command('getblockhash', 0) == genesis_hash

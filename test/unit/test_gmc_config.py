@@ -6,13 +6,13 @@ os.environ['SENTINEL_CONFIG'] = os.path.normpath(os.path.join(os.path.dirname(__
 os.environ['SENTINEL_ENV'] = 'test'
 sys.path.append(os.path.normpath(os.path.join(os.path.dirname(__file__), '../../lib')))
 import config
-from grandmastercoin_config import GrandMasterCoinConfig
+from gmc_config import GMCConfig
 
 
 @pytest.fixture
-def grandmastercoin_conf(**kwargs):
+def gmc_conf(**kwargs):
     defaults = {
-        'rpcuser': 'grandmastercoinrpc',
+        'rpcuser': 'gmcrpc',
         'rpcpassword': 'EwJeV3fZTyTVozdECF627BkBMnNDwQaVLakG3A4wXYyk',
         'rpcport': 29241,
     }
@@ -34,35 +34,35 @@ rpcport={rpcport}
 
 
 def test_get_rpc_creds():
-    grandmastercoin_config = grandmastercoin_conf()
-    creds = GrandMasterCoinConfig.get_rpc_creds(grandmastercoin_config, 'testnet')
+    gmc_config = gmc_conf()
+    creds = GMCConfig.get_rpc_creds(gmc_config, 'testnet')
 
     for key in ('user', 'password', 'port'):
         assert key in creds
-    assert creds.get('user') == 'grandmastercoinrpc'
+    assert creds.get('user') == 'gmcrpc'
     assert creds.get('password') == 'EwJeV3fZTyTVozdECF627BkBMnNDwQaVLakG3A4wXYyk'
     assert creds.get('port') == 29241
 
-    grandmastercoin_config = grandmastercoin_conf(rpcpassword='s00pers33kr1t', rpcport=8000)
-    creds = GrandMasterCoinConfig.get_rpc_creds(grandmastercoin_config, 'testnet')
+    gmc_config = gmc_conf(rpcpassword='s00pers33kr1t', rpcport=8000)
+    creds = GMCConfig.get_rpc_creds(gmc_config, 'testnet')
 
     for key in ('user', 'password', 'port'):
         assert key in creds
-    assert creds.get('user') == 'grandmastercoinrpc'
+    assert creds.get('user') == 'gmcrpc'
     assert creds.get('password') == 's00pers33kr1t'
     assert creds.get('port') == 8000
 
-    no_port_specified = re.sub('\nrpcport=.*?\n', '\n', grandmastercoin_conf(), re.M)
-    creds = GrandMasterCoinConfig.get_rpc_creds(no_port_specified, 'testnet')
+    no_port_specified = re.sub('\nrpcport=.*?\n', '\n', gmc_conf(), re.M)
+    creds = GMCConfig.get_rpc_creds(no_port_specified, 'testnet')
 
     for key in ('user', 'password', 'port'):
         assert key in creds
-    assert creds.get('user') == 'grandmastercoinrpc'
+    assert creds.get('user') == 'gmcrpc'
     assert creds.get('password') == 'EwJeV3fZTyTVozdECF627BkBMnNDwQaVLakG3A4wXYyk'
     assert creds.get('port') == 24936
 
 
-# ensure grandmastercoin network (mainnet, testnet) matches that specified in config
-# requires running grandmastercoind on whatever port specified...
+# ensure gmc network (mainnet, testnet) matches that specified in config
+# requires running gmcd on whatever port specified...
 #
-# This is more of a grandmastercoind/jsonrpc test than a config test...
+# This is more of a gmcd/jsonrpc test than a config test...

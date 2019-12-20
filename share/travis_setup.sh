@@ -1,9 +1,9 @@
 #!/bin/bash
 set -evx
 
-mkdir ~/.grandmastercoincore
+mkdir ~/.gmc
 
 # safety check
-if [ ! -f ~/.grandmastercoincore/.grandmastercoin.conf ]; then
-  cp share/grandmastercoin.conf.example ~/.grandmastercoincore/grandmastercoin.conf
+if [ ! -f ~/.gmc/.gmc.conf ]; then
+  cp share/gmc.conf.example ~/.gmc/gmc.conf
 fi

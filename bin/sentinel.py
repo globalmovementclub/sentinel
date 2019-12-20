@@ -5,7 +5,7 @@ sys.path.append(os.path.normpath(os.path.join(os.path.dirname(__file__), '../lib
 import init
 import config
 import misc
-from grandmastercoind import GrandMasterCoinDaemon
+from gmcd import GMCDaemon
 from models import Superblock, Proposal, GovernanceObject, Watchdog
 from models import VoteSignals, VoteOutcomes, Transient
 import socket
@@ -19,22 +19,22 @@ from scheduler import Scheduler
 import argparse
 
 
-# sync grandmastercoind gobject list with our local relational DB backend
-def perform_grandmastercoind_object_sync(grandmastercoind):
-    GovernanceObject.sync(grandmastercoind)
+# sync gmcd gobject list with our local relational DB backend
+def perform_gmcd_object_sync(gmcd):
+    GovernanceObject.sync(gmcd)
 
 
 # delete old watchdog objects, create new when necessary
-def watchdog_check(grandmastercoind):
+def watchdog_check(gmcd):
     printdbg("in watchdog_check")
 
     # delete expired watchdogs
-    for wd in Watchdog.expired(grandmastercoind):
+    for wd in Watchdog.expired(gmcd):
         printdbg("\tFound expired watchdog [%s], voting to delete" % wd.object_hash)
-        wd.vote(grandmastercoind, VoteSignals.delete, VoteOutcomes.yes)
+        wd.vote(gmcd, VoteSignals.delete, VoteOutcomes.yes)
 
     # now, get all the active ones...
-    active_wd = Watchdog.active(grandmastercoind)
+    active_wd = Watchdog.active(gmcd)
     active_count = active_wd.count()
 
     # none exist, submit a new one to the network
@@ -42,7 +42,7 @@ def watchdog_check(grandmastercoind):
         # create/submit one
         printdbg("\tNo watchdogs exist... submitting new one.")
         wd = Watchdog(created_at=int(time.time()))
-        wd.submit(grandmastercoind)
+        wd.submit(gmcd)
 
     else:
         wd_list = sorted(active_wd, key=lambda wd: wd.object_hash)
@@ -50,35 +50,35 @@ def watchdog_check(grandmastercoind):
         # highest hash wins
         winner = wd_list.pop()
         printdbg("\tFound winning watchdog [%s], voting VALID" % winner.object_hash)
-        winner.vote(grandmastercoind, VoteSignals.valid, VoteOutcomes.yes)
+        winner.vote(gmcd, VoteSignals.valid, VoteOutcomes.yes)
 
         # if remaining Watchdogs exist in the list, vote delete
         for wd in wd_list:
             printdbg("\tFound losing watchdog [%s], voting DELETE" % wd.object_hash)
-            wd.vote(grandmastercoind, VoteSignals.delete, VoteOutcomes.yes)
+            wd.vote(gmcd, VoteSignals.delete, VoteOutcomes.yes)
 
     printdbg("leaving watchdog_check")
 
 
-def prune_expired_proposals(grandmastercoind):
+def prune_expired_proposals(gmcd):
     # vote delete for old proposals
-    for proposal in Proposal.expired(grandmastercoind.superblockcycle()):
-        proposal.vote(grandmastercoind, VoteSignals.delete, VoteOutcomes.yes)
+    for proposal in Proposal.expired(gmcd.superblockcycle()):
+        proposal.vote(gmcd, VoteSignals.delete, VoteOutcomes.yes)
 
 
-# ping grandmastercoind
-def sentinel_ping(grandmastercoind):
+# ping gmcd
+def sentinel_ping(gmcd):
     printdbg("in sentinel_ping")
 
-    grandmastercoind.ping()
+    gmcd.ping()
 
     printdbg("leaving sentinel_ping")
 
 
-def attempt_superblock_creation(grandmastercoind):
-    import grandmastercoinlib
+def attempt_superblock_creation(gmcd):
+    import gmclib
 
-    if not grandmastercoind.is_masternode():
+    if not gmcd.is_masternode():
         print("We are not a Masternode... can't submit superblocks!")
         return
 
@@ -89,7 +89,7 @@ def attempt_superblock_creation(grandmastercoind):
     # has this masternode voted on *any* superblocks at the given event_block_height?
     # have we voted FUNDING=YES for a superblock for this specific event_block_height?
 
-    event_block_height = grandmastercoind.next_superblock_height()
+    event_block_height = gmcd.next_superblock_height()
 
     if Superblock.is_voted_funding(event_block_height):
         # printdbg("ALREADY VOTED! 'til next time!")
@@ -97,20 +97,20 @@ def attempt_superblock_creation(grandmastercoind):
         # vote down any new SBs because we've already chosen a winner
         for sb in Superblock.at_height(event_block_height):
             if not sb.voted_on(signal=VoteSignals.funding):
-                sb.vote(grandmastercoind, VoteSignals.funding, VoteOutcomes.no)
+                sb.vote(gmcd, VoteSignals.funding, VoteOutcomes.no)
 
         # now return, we're done
         return
 
-    if not grandmastercoind.is_govobj_maturity_phase():
+    if not gmcd.is_govobj_maturity_phase():
         printdbg("Not in maturity phase yet -- will not attempt Superblock")
         return
 
-    proposals = Proposal.approved_and_ranked(proposal_quorum=grandmastercoind.governance_quorum(), next_superblock_max_budget=grandmastercoind.next_superblock_max_budget())
-    budget_max = grandmastercoind.get_superblock_budget_allocation(event_block_height)
-    sb_epoch_time = grandmastercoind.block_height_to_epoch(event_block_height)
+    proposals = Proposal.approved_and_ranked(proposal_quorum=gmcd.governance_quorum(), next_superblock_max_budget=gmcd.next_superblock_max_budget())
+    budget_max = gmcd.get_superblock_budget_allocation(event_block_height)
+    sb_epoch_time = gmcd.block_height_to_epoch(event_block_height)
 
-    sb = grandmastercoinlib.create_superblock(proposals, event_block_height, budget_max, sb_epoch_time)
+    sb = gmclib.create_superblock(proposals, event_block_height, budget_max, sb_epoch_time)
     if not sb:
         printdbg("No superblock created, sorry. Returning.")
         return
@@ -118,12 +118,12 @@ def attempt_superblock_creation(grandmastercoind):
     # find the deterministic SB w/highest object_hash in the DB
     dbrec = Superblock.find_highest_deterministic(sb.hex_hash())
     if dbrec:
-        dbrec.vote(grandmastercoind, VoteSignals.funding, VoteOutcomes.yes)
+        dbrec.vote(gmcd, VoteSignals.funding, VoteOutcomes.yes)
 
         # any other blocks which match the sb_hash are duplicates, delete them
         for sb in Superblock.select().where(Superblock.sb_hash == sb.hex_hash()):
             if not sb.voted_on(signal=VoteSignals.funding):
-                sb.vote(grandmastercoind, VoteSignals.delete, VoteOutcomes.yes)
+                sb.vote(gmcd, VoteSignals.delete, VoteOutcomes.yes)
 
         printdbg("VOTED FUNDING FOR SB! We're done here 'til next superblock cycle.")
         return
@@ -131,24 +131,24 @@ def attempt_superblock_creation(grandmastercoind):
         printdbg("The correct superblock wasn't found on the network...")
 
     # if we are the elected masternode...
-    if (grandmastercoind.we_are_the_winner()):
+    if (gmcd.we_are_the_winner()):
         printdbg("we are the winner! Submit SB to network")
-        sb.submit(grandmastercoind)
+        sb.submit(gmcd)
 
 
-def check_object_validity(grandmastercoind):
+def check_object_validity(gmcd):
     # vote (in)valid objects
     for gov_class in [Proposal, Superblock]:
         for obj in gov_class.select():
-            obj.vote_validity(grandmastercoind)
+            obj.vote_validity(gmcd)
 
 
-def is_grandmastercoind_port_open(grandmastercoind):
+def is_gmcd_port_open(gmcd):
     # test socket open before beginning, display instructive message to MN
     # operators if it's not
     port_open = False
     try:
-        info = grandmastercoind.rpc_command('getgovernanceinfo')
+        info = gmcd.rpc_command('getgovernanceinfo')
         port_open = True
     except (socket.error, JSONRPCException) as e:
         print("%s" % e)
@@ -157,21 +157,21 @@ def is_grandmastercoind_port_open(grandmastercoind):
 
 
 def main():
-    grandmastercoind = GrandMasterCoinDaemon.from_grandmastercoin_conf(config.grandmastercoin_conf)
+    gmcd = GMCDaemon.from_gmc_conf(config.gmc_conf)
     options = process_args()
 
-    # check grandmastercoind connectivity
-    if not is_grandmastercoind_port_open(grandmastercoind):
-        print("Cannot connect to grandmastercoind. Please ensure grandmastercoind is running and the JSONRPC port is open to Sentinel.")
+    # check gmcd connectivity
+    if not is_gmcd_port_open(gmcd):
+        print("Cannot connect to gmcd. Please ensure gmcd is running and the JSONRPC port is open to Sentinel.")
         return
 
-    # check grandmastercoind sync
-    if not grandmastercoind.is_synced():
-        print("grandmastercoind not synced with network! Awaiting full sync before running Sentinel.")
+    # check gmcd sync
+    if not gmcd.is_synced():
+        print("gmcd not synced with network! Awaiting full sync before running Sentinel.")
         return
 
     # ensure valid masternode
-    if not grandmastercoind.is_masternode():
+    if not gmcd.is_masternode():
         print("Invalid Masternode Status, cannot continue.")
         return
 
@@ -203,22 +203,22 @@ def main():
     # ========================================================================
     #
     # load "gobject list" rpc command data, sync objects into internal database
-    perform_grandmastercoind_object_sync(grandmastercoind)
+    perform_gmcd_object_sync(gmcd)
 
-    if grandmastercoind.has_sentinel_ping:
-        sentinel_ping(grandmastercoind)
+    if gmcd.has_sentinel_ping:
+        sentinel_ping(gmcd)
     else:
         # delete old watchdog objects, create a new if necessary
-        watchdog_check(grandmastercoind)
+        watchdog_check(gmcd)
 
     # auto vote network objects as valid/invalid
-    # check_object_validity(grandmastercoind)
+    # check_object_validity(gmcd)
 
     # vote to delete expired proposals
-    prune_expired_proposals(grandmastercoind)
+    prune_expired_proposals(gmcd)
 
     # create a Superblock if necessary
-    attempt_superblock_creation(grandmastercoind)
+    attempt_superblock_creation(gmcd)
 
     # schedule the next run
     Scheduler.schedule_next_run()

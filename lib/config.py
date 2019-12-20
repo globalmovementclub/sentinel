@@ -3,27 +3,27 @@
 """
 import sys
 import os
-from grandmastercoin_config import GrandMasterCoinConfig
+from gmc_config import GMCConfig
 
 default_sentinel_config = os.path.normpath(
     os.path.join(os.path.dirname(__file__), '../sentinel.conf')
 )
 sentinel_config_file = os.environ.get('SENTINEL_CONFIG', default_sentinel_config)
-sentinel_cfg = GrandMasterCoinConfig.tokenize(sentinel_config_file)
+sentinel_cfg = GMCConfig.tokenize(sentinel_config_file)
 sentinel_version = "1.1.0"
-min_grandmastercoind_proto_version_with_sentinel_ping = 70207
+min_gmcd_proto_version_with_sentinel_ping = 70207
 
 
-def get_grandmastercoin_conf():
+def get_gmc_conf():
     home = os.environ.get('HOME')
 
-    grandmastercoin_conf = os.path.join(home, ".grandmastercoincore/grandmastercoin.conf")
+    gmc_conf = os.path.join(home, ".gmc/gmc.conf")
     if sys.platform == 'darwin':
-        grandmastercoin_conf = os.path.join(home, "Library/Application Support/GrandMasterCoinCore/grandmastercoin.conf")
+        gmc_conf = os.path.join(home, "Library/Application Support/GMCCore/gmc.conf")
 
-    grandmastercoin_conf = sentinel_cfg.get('grandmastercoin_conf', grandmastercoin_conf)
+    gmc_conf = sentinel_cfg.get('gmc_conf', gmc_conf)
 
-    return grandmastercoin_conf
+    return gmc_conf
 
 
 def get_network():
@@ -79,6 +79,6 @@ def get_db_conn():
     return db
 
 
-grandmastercoin_conf = get_grandmastercoin_conf()
+gmc_conf = get_gmc_conf()
 network = get_network()
 db = get_db_conn()
